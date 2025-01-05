@@ -1,0 +1,83 @@
+<html>
+    <body>
+        <script>
+            
+    let req = {
+    "variants": [
+        {
+            "id": 1,
+            "name": "T-shirt",
+            "price": "19.99",
+            "quantity": 100
+        },
+        {
+            "id": 2,
+            "name": "Jeans",
+            "price": "49.99",
+            "quantity": 50
+        },
+        {
+            "id": 3,
+            "name": "Sneakers",
+            "price": "79.99",
+            "quantity": 30
+        },
+        {
+            "id": 4,
+            "name": "Jacket",
+            "price": "99.99",
+            "quantity": 20
+        },
+        {
+            "id": 5,
+            "name": "Hat",
+            "price": "15.99",
+            "quantity": 150
+        }
+    ],
+    "modifiers": [
+        {
+            "id": 1,
+            "name": "Extra Large",
+            "price": "5.00",
+            "quantity": 200
+        },
+        {
+            "id": 2,
+            "name": "Small",
+            "price": "2.00",
+            "quantity": 100
+        },
+        {
+            "id": 3,
+            "name": "Premium Fabric",
+            "price": "10.00",
+            "quantity": 50
+        },
+        {
+            "id": 4,
+            "name": "Custom Design",
+            "price": "15.00",
+            "quantity": 30
+        },
+        {
+            "id": 5,
+            "name": "Gift Wrap",
+            "price": "3.00",
+            "quantity": 80
+        }
+    ]
+}
+    let variant_ids =[]
+    if(req && req.variants){
+        req.variants.forEach(function(item){
+            if(item){
+                variant_ids.push(item.id)
+            }
+        })
+    }
+    console.log("variant_ids" +"----------" +variant_ids)
+
+</script>
+    </body>
+</html>
