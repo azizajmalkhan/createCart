@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const cartController = require('./cartController'); // Import the controller
 const router = require('./routes');  // Import the router
+const createProduct= require("./createProductController")
 
 const app = express();
 
@@ -25,6 +26,8 @@ db.connect(function (err) {
     
     // Pass the DB connection to the controller once the connection is established
     cartController.setDb(db);
+    createProduct.setDb(db)
+
 });
 
 // Use the router for handling routes
