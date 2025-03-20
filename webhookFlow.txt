@@ -1,0 +1,87 @@
+CREATE TABLE orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+---------------------------------------------
+CREATE TABLE order_queue (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    processed BOOLEAN DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+----------------------------------------------------------
+DELIMITER $$
+
+CREATE TRIGGER order_created_trigger
+AFTER INSERT ON orders
+FOR EACH ROW
+BEGIN
+    -- Insert into the order_queue when a new order is added
+    INSERT INTO order_queue (order_id, customer_id, total_amount)
+    VALUES (NEW.id, NEW.customer_id, NEW.total_amount);
+END $$
+
+DELIMITER ;
+
+-------------------------------------------------------------
+
+-------------------------------------------------------------------
+const mysql = require('mysql2');
+const axios = require('axios');
+
+// Connect to the MySQL database
+const connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'yourpassword', // Replace with your MySQL password
+  database: 'your_database' // Replace with your database name
+});
+
+// The webhook URL to send the POST request to
+const webhookUrl = 'https://your-webhook-url.com'; // Replace with your actual webhook URL
+
+// Function to send the webhook
+async function sendWebhook(order) {
+  try {
+    const response = await axios.post(webhookUrl, {
+      order_id: order.order_id,
+      customer_id: order.customer_id,
+      total_amount: order.total_amount,
+    });
+    console.log('Webhook sent successfully:', response.status);
+  } catch (error) {
+    console.error('Error sending webhook:', error);
+  }
+}
+
+// Function to check for new orders in the queue
+function checkForNewOrders() {
+  connection.query('SELECT * FROM order_queue WHERE processed = 0', (err, results) => {
+    if (err) {
+      console.error('Error querying the database:', err);
+      return;
+    }
+
+    results.forEach(async (order) => {
+      // Trigger the webhook for each new order
+      await sendWebhook(order);
+
+      // Mark the order as processed after sending the webhook
+      connection.query('UPDATE order_queue SET processed = 1 WHERE id = ?', [order.id], (err) => {
+        if (err) {
+          console.error('Error marking order as processed:', err);
+        } else {
+          console.log(`Order ${order.id} processed.`);
+        }
+      });
+    });
+  });
+}
+
+// Poll the database every 5 seconds
+setInterval(checkForNewOrders, 5000);
