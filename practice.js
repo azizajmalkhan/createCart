@@ -406,4 +406,31 @@ module.exports = {
 //     -- VALUES
 //     --     ('Extra Cheese', 2.50, 200),
 //     --     ('Spicy Sauce', 1.50, 150);
-    
+
+/*
+
+================================================================
+debugging :
+==============
+first run :
+step :1--node --inspect server.js   
+step :2--open in chrome chrome://inspect/#devices	//Refresh the Page
+step :3 -- search file using ctrl + p
+step :4 -- put debugging point and hit on postman 
+
+================================================================
+Kill  port for debugging :
+==================================
+
+✅ Option 1: Kill the process using port 8081
+On Windows (Command Prompt or PowerShell):
+
+netstat -ano | findstr :8081
+
+You’ll get output like:
+
+TCP    127.0.0.1:8081      0.0.0.0:0              LISTENING       <PID>
+Take the PID (e.g., 12345) and kill it:
+
+Edit
+taskkill /PID 12345 /F*/
