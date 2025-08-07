@@ -1,0 +1,337 @@
+// Sanitize function to replace empty strings and undefined with null
+function sanitizeData(data) {
+    Object.keys(data).forEach(key => {
+        if (data[key] === '' || data[key] === undefined) {
+            data[key] = null; // Set null for empty strings and undefined fields
+        }
+    });
+    return data;
+}
+
+const createProduct = async (req, res) => {
+    let data = req.body;
+
+    // Step 1: Sanitize data (replace empty strings and undefined with null)
+            `                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   `
+
+    // Log the sanitized data to verify the changes
+    console.log('Sanitized Data:', JSON.stringify(data, null, 2));
+
+    // Step 2: Check if the product already exists
+    let product_exists = await checkProductName(data.name);
+    if (product_exists) {
+        return res.json({
+            error: "Product already exists"
+        });
+    }
+
+    // Step 3: Insert new product data
+    try {
+        const insertResult = await createProductData(data);
+        var product_response = {
+            message: 'Product created successfully',
+            productId: insertResult.insertId,
+        };
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+
+    // Step 4: Create variants if product was created successfully
+    if (product_response && product_response.productId) {
+        const inserted_variants = await createVariantData(data, product_response.productId);
+        if (inserted_variants && inserted_variants.insertId) {
+            return res.status(201).json({
+                message: 'Product and variant created successfully',
+                productId: inserted_variants.insertId,
+            });
+        } else {
+            return res.status(500).json({ error: 'Failed to create variant' });
+        }
+    }
+};
+
+// Check if product name already exists
+async function checkProductName(product_name) {
+    if (product_name) {
+        let get_query = "SELECT name FROM shop.product WHERE name = ?";
+        const get_query_results = await queryAsync(get_query, [product_name]);
+        return get_query_results.length > 0; // If product exists, return true
+    }
+    return false; // If no product name is provided, return false
+}
+
+// Create product data in the database
+// async function createProductData(data) {
+//     if (data) {
+//         data = sanitizeData(data); // Ensure data is sanitized here
+//         let productData = {
+//             "s_created_at": data.s_created_at,
+//             "s_updated_at": data.s_updated_at,
+//             "is_deleted": data.is_deleted,
+//             "op_id": data.op_id,
+//             "op_type": data.op_type,
+//             "name": data.name,
+//             "description": data.description,
+//             "tax_category_id": data.tax_category_id,
+//             "meta_title": data.meta_title,
+//             "status": data.status,
+//             "store_id": data.store_id,
+//             "taxonomy_id": data.taxonomy_id,
+//             "option_type_ids": data.option_type_ids,
+//             "barcode": data.barcode,
+//             "service_type": data.service_type,
+//             "price": data.price,
+//             "files": data.files,
+//             "industry_id": data.industry_id,
+//             "stock": data.stock,
+//             "is_single_variant": data.is_single_variant,
+//             "is_preference": data.is_preference,
+//             "barcode_type": data.barcode_type,
+//             "modifier": data.modifier
+//         };
+
+//         let columns = Object.keys(productData).join(", ");
+//         let values = Object.values(productData).map(item => {
+//             if (typeof item === 'object') {
+//                 return JSON.stringify(item); // Serialize objects
+//             }
+//             return item;
+//         });
+//         let placeholders = values.map(() => '?').join(", ");
+//         const create_query = `INSERT INTO shop.product (${columns}) VALUES (${placeholders})`;
+
+//         const createdData = await queryAsync(create_query, values);
+//         return createdData;
+//     }
+//     throw new Error('Invalid data'); // Error handling if data is invalid
+// }
+
+// // Create variant data in the database
+// async function createVariantData(data, product_id) {
+//     let variant_data = {
+//         "s_created_by": data.s_created_by,
+//         "s_updated_by": data.s_updated_by,
+//         "s_created_at": data.s_created_at,
+//         "s_updated_at": data.s_updated_at,
+//         "is_deleted": data.is_deleted,
+//         "row_version": data.row_version,
+//         "s_created_ip": data.s_created_ip,
+//         "s_updated_ip": data.s_updated_ip,
+//         "account_id": data.account_id,
+//         "application_id": data.application_id,
+//         "txn_id": data.txn_id,
+//         "op_id": data.op_id,
+//         "op_type": data.op_type,
+//         "product_id": product_id,
+//         "cost_price": data.cost_price,
+//         "tax_category_id": data.tax_category_id,
+//         "price": data.price,
+//         "is_active": data.is_active,
+//         "name": data.name,
+//         "variant_options": data.variant_options,
+//         "store_id": data.store_id
+//     };
+
+//     // Ensure the variant data is sanitized as well
+//     variant_data = sanitizeData(variant_data);
+
+//     let keys = Object.keys(variant_data).join(",");
+//     let values = Object.values(variant_data);
+//     let placeholders = values.map(() => '?').join(",");
+//     let query = `INSERT INTO shop.variants (${keys}) VALUES (${placeholders})`;
+//     let inserted_data = await queryAsync(query, values);
+//     return inserted_data;
+// }
+
+
+
+
+const createProductData = async (data) => {
+    if (data) {
+      //  debugger;
+        // Prepare product data
+        const productData = {
+            s_created_at: data.s_created_at || null,
+            s_updated_at: data.s_updated_at || null,
+            is_deleted: data.is_deleted || false,
+            op_id: data.op_id || null,
+            op_type: data.op_type || null,
+            name: data.name,
+            description: data.description,
+            tax_category_id: data.tax_category_id,
+            meta_title: data.meta_title || null,
+            status: data.status || 'active',
+            store_id: data.store_id,
+            taxonomy_id: data.taxonomy_id,
+            option_type_ids: JSON.stringify(data.option_type_ids || []),
+            barcode: data.barcode || null,
+            service_type: data.service_type || null,
+            price: data.price || 0.00,
+            files: JSON.stringify(data.files || []),
+            industry_id: data.industry_id,
+            stock: data.stock || 0,
+            is_single_variant: data.is_single_variant || false,
+            is_preference: data.is_preference || false,
+            barcode_type: data.barcode_type || null,
+            modifier: JSON.stringify(data.modifier || [])
+        };
+
+        // Build columns and placeholders
+        const columns = Object.keys(productData).join(", ");
+        const values = Object.values(productData);
+        const placeholders = values.map(() => '?').join(", ");
+
+        const create_query = `INSERT INTO shop.product (${columns}) VALUES (${placeholders})`;
+
+        try {
+            const createdData = await queryAsync(create_query, values);
+            return createdData;  // Return the inserted product data
+        } catch (err) {
+            throw new Error(`Error inserting product data: ${err.message}`);
+        }
+    } else {
+        throw new Error('Invalid product data');
+    }
+};
+
+// const createVariantData = async (data, product_id) => {
+//     // Check if variant name is provided, if not use the product name
+//     const variantName = data.name || `Variant of ${data.product_name || 'Unnamed Product'}`;
+//     let variants = data.variants.variant_config_data.map(function (item) {
+//         return [
+//         item.s_created_by || null,
+//         item.s_updated_by || null,
+//         item.s_created_at || null,
+//         item.s_updated_at || null,
+//         item.is_deleted || false,
+//         item.row_version || null,
+//         item.s_created_ip || null,
+//         item.s_updated_ip || null,
+//         item.account_id || null,
+//         item.application_id || null,
+//         item.txn_id || null,
+//         item.op_id || null,
+//         item.op_type || null,
+//         product_id,  // The ID of the product that this variant belongs to
+//         item.cost_price || null,
+//         item.is_active || true,
+//         item.price,
+//         JSON.stringify(item.variant_options),
+//         item.store_id || null,
+//         item.name ||"Unnamed Variant",
+//         item.tax_category_id]
+//     })
+//    // return variants
+//     const variantData = {
+//         s_created_by: data.s_created_by || null,
+//         s_updated_by: data.s_updated_by || null,
+//         s_created_at: data.s_created_at || null,
+//         s_updated_at: data.s_updated_at || null,
+//         is_deleted: data.is_deleted || false,
+//         row_version: data.row_version || null,
+//         s_created_ip: data.s_created_ip || null,
+//         s_updated_ip: data.s_updated_ip || null,
+//         account_id: data.account_id || null,
+//         application_id: data.application_id || null,
+//         txn_id: data.txn_id || null,
+//         op_id: data.op_id || null,
+//         op_type: data.op_type || null,
+//         product_id: product_id,  // The ID of the product that this variant belongs to
+//         cost_price: data.cost_price || null,
+//         is_active: data.is_active || true,
+//         price: (data.variants && data.variants.variant_config_data.length>0 && data.variants.variant_config_data[0].price )? data.variants.variant_config_data[0].price : 0.00,
+//         variant_options: JSON.stringify(data.variant_options || {}),
+//         store_id: data.store_id || null,
+//         name: (data.variants && data.variants.variant_config_data.length>0 && data.variants.variant_config_data[0].name )? data.variants.variant_config_data[0].name :"0" ,
+//         tax_category_id:(data.variants && data.variants.variant_config_data.length>0 && data.variants.variant_config_data[0].tax_category_id )? data.variants.variant_config_data[0].tax_category_id :"0" 
+//     };
+
+//     const keys =variants.map(() => '?').join(",");
+//    // const values = Object.values(variantData);
+//     const placeholders = variants.map(() => '?').join(",");
+
+//     const query = `INSERT INTO shop.variants (${keys}) VALUES (${placeholders})`;
+
+//     try {
+//         const inserted_data = await queryAsync(query, variants);
+//         return inserted_data;  // Return inserted variant data
+//     } catch (err) {
+//         throw new Error(`Error inserting variant data: ${err.message}`);
+//     }
+// };
+
+
+// Database query async wrapper
+
+const createVariantData = async (data, product_id) => {
+    // Generate the variant array from variant_config_data
+    let variants = data.variants.variant_config_data.map(item => [
+        item.s_created_by || null,
+        item.s_updated_by || null,
+        item.s_created_at || null,
+        item.s_updated_at || null,
+        item.is_deleted || false,
+        item.row_version || null,
+        item.s_created_ip || null,
+        item.s_updated_ip || null,
+        item.account_id || null,
+        item.application_id || null,
+        item.txn_id || null,
+        item.op_id || null,
+        item.op_type || null,
+        product_id,  // The ID of the product that this variant belongs to
+        item.cost_price || null,
+        item.is_active || true,
+        item.price|| 0,
+        JSON.stringify(item.variant_options),
+        item.store_id || null,
+        item.name || "Unnamed Variant",
+        item.tax_category_id
+    ]);
+
+    // Define columns for the query (the same columns as in the variantData)
+    const keys = [
+        's_created_by', 's_updated_by', 's_created_at', 's_updated_at', 'is_deleted', 'row_version',
+        's_created_ip', 's_updated_ip', 'account_id', 'application_id', 'txn_id', 'op_id', 'op_type',
+        'product_id', 'cost_price', 'is_active', 'price', 'variant_options', 'store_id', 'name', 'tax_category_id'
+    ].join(", ");
+
+    // Define the placeholders for bulk insert
+    const placeholders = variants.map(() => '(' + new Array(keys.split(',').length).fill('?').join(', ') + ')').join(", ");
+
+    const query = `INSERT INTO shop.variants (${keys}) VALUES ${placeholders}`;
+
+    // Logging the query and variants for debugging
+    console.log('Query:', query);
+    console.log('Variants:', variants);
+
+    try {
+        // Perform the bulk insert
+        const inserted_data = await queryAsync(query, [].concat(...variants)); // Flatten the array for bulk insert
+        return inserted_data;  // Return inserted variant data
+    } catch (err) {
+        throw new Error(`Error inserting variant data: ${err.message}`);
+    }
+};
+
+let db;
+function setDb(connection) {
+    db = connection;
+}
+
+function queryAsync(query, params) {
+    return new Promise((resolve, reject) => {
+        db.execute(query, params, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+}
+
+module.exports = {
+    setDb: setDb,
+    createProduct
+};
