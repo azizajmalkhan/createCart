@@ -1,4 +1,5 @@
 const Order = require("../models/order")
+const emailQueue = require("../Queues/OrderEmailQueue")
 
 //const createOrder = async (req, res) => {
 // try {
@@ -117,6 +118,11 @@ const createOrder = async (req, res) => {
             "sub_total": totalPrice
         }
         let orderInserted = await Order.create(insertData)
+        if(orderInserted && orderInserted.id){
+            emailQueue.add(orderInserted.id)
+            console.log("order.iddd added in queue" , orderInserted.id);
+            
+        }
         return res.json({
             data: orderInserted
         })
